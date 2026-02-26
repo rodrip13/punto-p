@@ -263,6 +263,18 @@ export function useCanvasTransform() {
     animatingTimeout.current = setTimeout(() => setIsAnimating(false), 500);
   }, []);
 
+  // ---- Center view (animated, keeps current scale or uses initial) ----
+  const centerView = useCallback(() => {
+    setIsAnimating(true);
+    setTransform(prev => ({
+      scale: Math.max(prev.scale, isMobile() ? INITIAL_MOBILE_SCALE : INITIAL_DESKTOP_SCALE),
+      translateX: 0,
+      translateY: 0,
+    }));
+    clearTimeout(animatingTimeout.current);
+    animatingTimeout.current = setTimeout(() => setIsAnimating(false), 500);
+  }, []);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => clearTimeout(animatingTimeout.current);
@@ -277,5 +289,6 @@ export function useCanvasTransform() {
     resetTransform,
     fitToScreen,
     focusOnElement,
+    centerView,
   };
 }

@@ -6,14 +6,16 @@ import { useCanvasTransform } from './useCanvasTransform';
 export default function App() {
   const [isOpen, setIsOpen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
-  const { containerRef, transform, isAnimating, zoomIn, zoomOut, resetTransform, fitToScreen, focusOnElement } = useCanvasTransform();
+  const { containerRef, transform, isAnimating, zoomIn, zoomOut, resetTransform, fitToScreen, focusOnElement, centerView } = useCanvasTransform();
 
   const handleOpenToggle = () => {
     setIsOpen(!isOpen);
+    centerView();
   };
 
   const handleFlipToggle = () => {
     setIsFlipped(!isFlipped);
+    centerView();
   };
 
   const handlePanelClick = (e: MouseEvent<HTMLDivElement>) => {
