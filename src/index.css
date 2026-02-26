@@ -1,1 +1,11 @@
 @import "tailwindcss";
+
+/* Auto-hide mobile hint after 4 seconds */
+@keyframes fadeOutHint {
+  0%, 80% { opacity: 1; }
+  100% { opacity: 0; pointer-events: none; }
+}
+
+.hint-fade {
+  animation: fadeOutHint 5s ease-out forwards;
+}

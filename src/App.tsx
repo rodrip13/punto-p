@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
-import { RotateCcw, BookOpen, X } from 'lucide-react';
+import { RotateCcw, BookOpen, X, ZoomIn, ZoomOut, Maximize, Move } from 'lucide-react';
+import { useCanvasTransform } from './useCanvasTransform';
 
 export default function App() {
   const [isOpen, setIsOpen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
+  const { containerRef, transform, isAnimating, zoomIn, zoomOut, resetTransform, fitToScreen, focusOnElement } = useCanvasTransform();
 
   const handleOpenToggle = () => {
     setIsOpen(!isOpen);
@@ -14,8 +16,40 @@ export default function App() {
     setIsFlipped(!isFlipped);
   };
 
+  const handlePanelClick = (e: MouseEvent<HTMLDivElement>) => {
+    focusOnElement(e.currentTarget);
+  };
+
+  const zoomPercent = Math.round(transform.scale * 100);
+
   return (
-    <div className="min-h-screen bg-stone-200 flex flex-col items-center justify-center font-sans text-stone-800 overflow-hidden">
+    <div className="min-h-screen bg-stone-200 flex flex-col items-center justify-center font-sans text-stone-800 overflow-hidden relative">
+      
+      {/* Canvas area — full viewport, handles zoom/pan */}
+      <div
+        ref={containerRef}
+        className="absolute inset-0 cursor-grab active:cursor-grabbing touch-none select-none"
+        style={{ overflow: 'hidden' }}
+      >
+        {/* Subtle grid background to convey canvas feel */}
+        <div
+          className="absolute inset-0 opacity-[0.03]"
+          style={{
+            backgroundImage: 'radial-gradient(circle, #000 1px, transparent 1px)',
+            backgroundSize: '24px 24px',
+          }}
+        />
+
+        {/* Transformable content layer */}
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center"
+          style={{
+            transform: `translate(${transform.translateX}px, ${transform.translateY}px) scale(${transform.scale})`,
+            transformOrigin: 'center center',
+            willChange: 'transform',
+            transition: isAnimating ? 'transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)' : 'none',
+          }}
+        >
       
       <div className="mb-8 text-center z-10">
         <h1 className="text-3xl font-bold mb-2 text-stone-900">Folleto Carpa Roja</h1>
@@ -44,8 +78,9 @@ export default function App() {
           >
             {/* Inside Center */}
             <div 
-              className="absolute inset-0 bg-stone-50 p-5 sm:p-8 flex flex-col"
+              className="absolute inset-0 bg-stone-50 p-5 sm:p-8 flex flex-col cursor-pointer"
               style={{ backfaceVisibility: 'hidden' }}
+              onClick={handlePanelClick}
             >
               <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#ff4040]">Actividades</h2>
               <p className="text-stone-700 flex-1 leading-relaxed text-xs sm:text-base">
@@ -57,8 +92,9 @@ export default function App() {
             
             {/* Outside Back (Center panel of the image) */}
             <div 
-              className="absolute inset-0 bg-white p-4 sm:p-6 flex flex-col text-[10px] sm:text-sm border-l border-stone-200"
+              className="absolute inset-0 bg-white p-4 sm:p-6 flex flex-col text-[10px] sm:text-sm border-l border-stone-200 cursor-pointer"
               style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+              onClick={handlePanelClick}
             >
               <div className="flex justify-center mb-3 sm:mb-6 mt-2 sm:mt-4">
                 {/* Logo Approximation */}
@@ -115,8 +151,9 @@ export default function App() {
           >
             {/* Inside Right */}
             <div 
-              className="absolute inset-0 bg-white p-5 sm:p-8 flex flex-col border-l border-stone-200"
+              className="absolute inset-0 bg-white p-5 sm:p-8 flex flex-col border-l border-stone-200 cursor-pointer"
               style={{ backfaceVisibility: 'hidden' }}
+              onClick={handlePanelClick}
             >
               <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#ff4040]">Participa</h2>
               <p className="text-stone-700 leading-relaxed text-xs sm:text-base">
@@ -128,8 +165,9 @@ export default function App() {
             
             {/* Outside Flap (Left panel of the image, Folds in first) */}
             <div 
-              className="absolute inset-0 bg-[#ff4040] p-4 sm:p-6 flex flex-col border-r border-red-500/50 text-stone-900"
+              className="absolute inset-0 bg-[#ff4040] p-4 sm:p-6 flex flex-col border-r border-red-500/50 text-stone-900 cursor-pointer"
               style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+              onClick={handlePanelClick}
             >
               {/* Arched Image */}
               <div className="relative w-full aspect-[2/2.2] sm:aspect-[2/2.8] mt-1 sm:mt-2 mb-3 sm:mb-8">
@@ -182,8 +220,9 @@ export default function App() {
           >
             {/* Inside Left */}
             <div 
-              className="absolute inset-0 bg-white p-5 sm:p-8 flex flex-col border-r border-stone-200"
+              className="absolute inset-0 bg-white p-5 sm:p-8 flex flex-col border-r border-stone-200 cursor-pointer"
               style={{ backfaceVisibility: 'hidden' }}
+              onClick={handlePanelClick}
             >
               <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#ff4040]">La Experiencia</h2>
               <p className="text-stone-700 leading-relaxed text-xs sm:text-base">
@@ -195,8 +234,9 @@ export default function App() {
             
             {/* Outside Cover (Right panel of the image, Folds in last, visible when closed) */}
             <div 
-              className="absolute inset-0 flex flex-col bg-[#ff4040] shadow-2xl overflow-hidden"
+              className="absolute inset-0 flex flex-col bg-[#ff4040] shadow-2xl overflow-hidden cursor-pointer"
               style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+              onClick={handlePanelClick}
             >
               <div className="h-[65%] w-full relative bg-red-900">
                 <img 
@@ -220,7 +260,7 @@ export default function App() {
         </motion.div>
       </div>
 
-      {/* Controls */}
+      {/* Controls — inside the transformable layer so they move with content */}
       <div className="mt-12 flex gap-4 z-10">
         <button 
           onClick={handleOpenToggle}
@@ -237,6 +277,56 @@ export default function App() {
           <RotateCcw size={18} className={isFlipped ? "rotate-180 transition-transform" : "transition-transform"} />
           {isFlipped ? 'Ver Portada' : 'Ver Reverso'}
         </button>
+      </div>
+
+        </div>{/* end transformable content layer */}
+      </div>{/* end canvas area */}
+
+      {/* Zoom Controls — fixed overlay, outside transform */}
+      <div className="fixed bottom-6 right-4 z-50 flex flex-col items-center gap-2">
+        {/* Zoom percentage badge */}
+        <div className="bg-black/70 text-white text-xs font-mono px-2 py-1 rounded-md mb-1 min-w-[48px] text-center">
+          {zoomPercent}%
+        </div>
+
+        <div className="flex flex-col bg-white rounded-2xl shadow-lg border border-stone-200 overflow-hidden">
+          <button
+            onClick={zoomIn}
+            className="p-3 hover:bg-stone-100 active:bg-stone-200 transition-colors border-b border-stone-100"
+            title="Acercar"
+          >
+            <ZoomIn size={20} className="text-stone-700" />
+          </button>
+          <button
+            onClick={zoomOut}
+            className="p-3 hover:bg-stone-100 active:bg-stone-200 transition-colors border-b border-stone-100"
+            title="Alejar"
+          >
+            <ZoomOut size={20} className="text-stone-700" />
+          </button>
+          <button
+            onClick={fitToScreen}
+            className="p-3 hover:bg-stone-100 active:bg-stone-200 transition-colors border-b border-stone-100"
+            title="Ver completo"
+          >
+            <Maximize size={20} className="text-stone-700" />
+          </button>
+          <button
+            onClick={resetTransform}
+            className="p-3 hover:bg-stone-100 active:bg-stone-200 transition-colors"
+            title="Restablecer"
+          >
+            <RotateCcw size={18} className="text-stone-700" />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile hint — auto-fades after a few seconds */}
+      <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 sm:hidden pointer-events-none hint-fade">
+        <div className="bg-black/70 text-white text-xs px-4 py-2 rounded-full flex items-center gap-2">
+          <Move size={14} />
+          Pellizca para zoom · Arrastra para mover
+        </div>
       </div>
 
     </div>
