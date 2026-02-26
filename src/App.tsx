@@ -1,12 +1,20 @@
-import { useState, type MouseEvent } from 'react';
+import { useState, useCallback, type MouseEvent } from 'react';
 import { motion } from 'motion/react';
-import { RotateCcw, BookOpen, X, ZoomIn, ZoomOut, Maximize, Move } from 'lucide-react';
+import { RotateCcw, BookOpen, X, ZoomIn, ZoomOut, Maximize, Move, Mail, Phone, Check } from 'lucide-react';
 import { useCanvasTransform } from './useCanvasTransform';
 
 export default function App() {
   const [isOpen, setIsOpen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
   const { containerRef, transform, isAnimating, zoomIn, zoomOut, resetTransform, fitToScreen, focusOnElement, centerView } = useCanvasTransform();
+
+  const copyToClipboard = useCallback((email: string) => {
+    navigator.clipboard.writeText(email).then(() => {
+      setCopiedEmail(email);
+      setTimeout(() => setCopiedEmail(null), 2000);
+    });
+  }, []);
 
   const handleOpenToggle = () => {
     setIsOpen(!isOpen);
@@ -52,11 +60,6 @@ export default function App() {
             transition: isAnimating ? 'transform 0.45s cubic-bezier(0.32, 0.72, 0, 1)' : 'none',
           }}
         >
-      
-      <div className="mb-8 text-center z-10">
-        <h1 className="text-3xl font-bold mb-2 text-stone-900">Folleto Carpa Roja</h1>
-        <p className="text-stone-600 text-sm">Interactúa con el folleto usando los controles</p>
-      </div>
 
       {/* Scene with perspective */}
       <div style={{ perspective: '2000px' }} className="relative z-0">
@@ -99,16 +102,12 @@ export default function App() {
               onClick={handlePanelClick}
             >
               <div className="flex justify-center mb-3 sm:mb-6 mt-2 sm:mt-4">
-                {/* Logo Approximation */}
-                <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-full border-[2px] border-[#6b5b95] flex flex-col items-center justify-center relative overflow-hidden bg-white">
-                  <svg viewBox="0 0 100 100" className="w-12 h-12 sm:w-20 sm:h-20 fill-[#4a86e8] mb-1">
-                    {/* Abstract mother shape */}
-                    <path d="M45 20 C45 10 60 10 60 20 C60 30 45 35 45 50 C45 65 65 65 65 50 C65 40 75 40 75 50 C75 75 35 75 35 50 C35 30 45 25 45 20 Z" />
-                    {/* Yellow accent (map) */}
-                    <path d="M52 45 L58 48 L55 55 L50 52 Z" fill="#ffd700" />
-                  </svg>
-                  <span className="text-[8px] sm:text-xs font-bold text-[#4a86e8] tracking-wider">RELACAHUPAN</span>
-                  <span className="text-[6px] sm:text-[10px] text-[#4a86e8] italic">Uruguay</span>
+                <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-full border-[2px] border-[#6b5b95] flex items-center justify-center relative overflow-hidden bg-white">
+                  <img 
+                    src="/Relacahupan_logo.png" 
+                    alt="RELACAHUPAN Uruguay" 
+                    className="w-full h-full object-contain p-1 sm:p-2"
+                  />
                 </div>
               </div>
               
@@ -117,18 +116,46 @@ export default function App() {
                 
                 <div>
                   <p className="font-medium leading-tight">RELACAHUPAN Uruguay <span className="font-normal hidden sm:inline">(Red Latinoamericana y del Caribe para la Humanización del Parto y el Nacimiento)</span><span className="font-normal sm:hidden">(Red Latinoamericana...)</span></p>
-                  <ul className="list-disc pl-3 sm:pl-4 mt-1 text-stone-600 space-y-0.5 sm:space-y-1">
-                    <li className="pl-1">Email:<br/><a href="mailto:relacahupanuruguaydoulas@gmail.com" className="text-[9px] sm:text-xs break-all">relacahupanuruguaydoulas@gmail.com</a></li>
-                  </ul>
+                  <div className="mt-1.5 text-stone-600 space-y-1 sm:space-y-1.5">
+                    <button
+                      onClick={() => copyToClipboard('relacahupanuruguaydoulas@gmail.com')}
+                      className="flex items-center gap-1.5 w-full text-left group"
+                    >
+                      <Mail size={12} className="shrink-0 text-stone-400 group-hover:text-[#4a86e8] transition-colors" />
+                      <span className="text-[9px] sm:text-xs break-all group-hover:text-[#4a86e8] transition-colors">relacahupanuruguaydoulas@gmail.com</span>
+                    </button>
+                  </div>
                 </div>
 
                 <div>
                   <p className="font-medium leading-tight">Instituto Perinatal del Uruguay (IPU)</p>
-                  <ul className="list-disc pl-3 sm:pl-4 mt-1 text-stone-600 space-y-0.5 sm:space-y-1">
-                    <li className="pl-1">Directora: Rosa Rinaldi</li>
-                    <li className="pl-1">Teléfono: 099 059 575</li>
-                    <li className="pl-1">Email:<br/><a href="mailto:institutoperinataldeluruguay@gmail.com" className="text-[9px] sm:text-xs break-all">institutoperinataldeluruguay@gmail.com</a></li>
-                  </ul>
+                  <div className="mt-1.5 text-stone-600 space-y-1 sm:space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[9px] sm:text-xs text-stone-500">Directora: Rosa Rinaldi</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Phone size={12} className="shrink-0 text-stone-400" />
+                      <span className="text-[9px] sm:text-xs">099 059 575</span>
+                    </div>
+                    <button
+                      onClick={() => copyToClipboard('institutoperinataldeluruguay@gmail.com')}
+                      className="flex items-center gap-1.5 w-full text-left group"
+                    >
+                      <Mail size={12} className="shrink-0 text-stone-400 group-hover:text-[#4a86e8] transition-colors" />
+                      <span className="text-[9px] sm:text-xs break-all group-hover:text-[#4a86e8] transition-colors">institutoperinataldeluruguay@gmail.com</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* IPU Logo */}
+              <div className="flex justify-center mt-2 sm:mt-4">
+                <div className="w-24 h-24 sm:w-40 sm:h-40 rounded-full border-[2px] border-[#6b5b95] flex items-center justify-center overflow-hidden bg-white">
+                  <img 
+                    src="/ipu_logo.jpg" 
+                    alt="Instituto Perinatal del Uruguay" 
+                    className="w-full h-full object-contain p-1 sm:p-2"
+                  />
                 </div>
               </div>
               
@@ -242,17 +269,34 @@ export default function App() {
             >
               <div className="h-[65%] w-full relative bg-red-900">
                 <img 
-                  src="https://images.unsplash.com/photo-1534447677768-be436bb09401?w=500&q=80" 
+                  src="/carpa_frente.jpg" 
                   alt="Carpa Roja" 
                   className="w-full h-full object-cover opacity-90 mix-blend-luminosity"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-[#ff4040]/40 mix-blend-overlay"></div>
               </div>
-              <div className="h-[35%] w-full flex items-center justify-center relative">
-                <h1 className="text-4xl sm:text-6xl font-bold text-black tracking-tighter lowercase" style={{ fontFamily: 'Arial, sans-serif' }}>
-                  carpa roja
-                </h1>
+              <div className="h-[35%] w-full flex flex-col items-center justify-center relative px-4">
+                {/* Curved arch title */}
+                <svg viewBox="0 0 260 80" className="w-[200px] sm:w-[260px] overflow-visible">
+                  <defs>
+                    <path id="titleArc" d="M 10,70 Q 130,0 250,70" fill="none" />
+                  </defs>
+                  <text
+                    fontSize="44"
+                    fontWeight="bold"
+                    fill="black"
+                    fontFamily="Arial, sans-serif"
+                    letterSpacing="-1"
+                  >
+                    <textPath href="#titleArc" startOffset="50%" textAnchor="middle">
+                      La carpa roja
+                    </textPath>
+                  </text>
+                </svg>
+                <p className="text-[8px] sm:text-xs text-black/70 uppercase tracking-[0.15em] mt-3 sm:mt-1.5 font-medium text-center leading-tight">
+                  Un espacio simbólico de encuentro, sanación y derechos.
+                </p>
               </div>
               {/* Inner shadow for fold depth */}
               <div className="absolute inset-0 bg-gradient-to-l from-black/20 to-transparent pointer-events-none" />
@@ -328,6 +372,18 @@ export default function App() {
         <div className="bg-black/70 text-white text-xs px-4 py-2 rounded-full flex items-center gap-2">
           <Move size={14} />
           Pellizca para zoom · Arrastra para mover
+        </div>
+      </div>
+
+      {/* Snackbar — copy confirmation */}
+      <div 
+        className={`fixed bottom-16 left-1/2 -translate-x-1/2 z-[60] transition-all duration-300 pointer-events-none ${
+          copiedEmail ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'
+        }`}
+      >
+        <div className="bg-stone-900 text-white text-xs sm:text-sm px-4 py-2.5 rounded-full shadow-xl flex items-center gap-2">
+          <Check size={14} className="text-green-400" />
+          Email copiado al portapapeles
         </div>
       </div>
 
