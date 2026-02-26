@@ -260,30 +260,30 @@ export default function App() {
         </motion.div>
       </div>
 
-      {/* Controls — inside the transformable layer so they move with content */}
-      <div className="mt-12 flex gap-4 z-10">
+        </div>{/* end transformable content layer */}
+      </div>{/* end canvas area */}
+
+      {/* Brochure controls — fixed at bottom center, outside transform */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-3">
         <button 
           onClick={handleOpenToggle}
-          className="flex items-center gap-2 px-6 py-3 bg-white rounded-full shadow-md hover:shadow-lg transition-all text-stone-700 font-medium active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-white rounded-full shadow-lg hover:shadow-xl transition-all text-stone-700 font-medium active:scale-95 text-sm sm:text-base"
         >
           {isOpen ? <X size={18} /> : <BookOpen size={18} />}
-          {isOpen ? 'Cerrar Folleto' : 'Abrir Folleto'}
+          {isOpen ? 'Cerrar' : 'Abrir'}
         </button>
         
         <button 
           onClick={handleFlipToggle}
-          className="flex items-center gap-2 px-6 py-3 bg-stone-800 text-white rounded-full shadow-md hover:shadow-lg transition-all font-medium active:scale-95"
+          className="flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 bg-stone-800 text-white rounded-full shadow-lg hover:shadow-xl transition-all font-medium active:scale-95 text-sm sm:text-base"
         >
           <RotateCcw size={18} className={isFlipped ? "rotate-180 transition-transform" : "transition-transform"} />
-          {isFlipped ? 'Ver Portada' : 'Ver Reverso'}
+          {isFlipped ? 'Portada' : 'Reverso'}
         </button>
       </div>
 
-        </div>{/* end transformable content layer */}
-      </div>{/* end canvas area */}
-
-      {/* Zoom Controls — fixed overlay, outside transform */}
-      <div className="fixed bottom-6 right-4 z-50 flex flex-col items-center gap-2">
+      {/* Zoom Controls — fixed overlay, bottom-right */}
+      <div className="fixed bottom-20 right-4 z-50 flex flex-col items-center gap-2">
         {/* Zoom percentage badge */}
         <div className="bg-black/70 text-white text-xs font-mono px-2 py-1 rounded-md mb-1 min-w-[48px] text-center">
           {zoomPercent}%
