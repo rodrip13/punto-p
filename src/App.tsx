@@ -83,21 +83,32 @@ export default function App() {
           >
             {/* Inside Center */}
             <div 
-              className="absolute inset-0 bg-stone-50 p-5 sm:p-8 flex flex-col cursor-pointer"
+              className="absolute inset-0 bg-[#ff4040] p-4 sm:p-6 flex flex-col justify-center cursor-pointer text-stone-900"
               style={{ backfaceVisibility: 'hidden' }}
               onClick={handlePanelClick}
             >
-              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#ff4040]">Actividades</h2>
-              <p className="text-stone-700 flex-1 leading-relaxed text-xs sm:text-base">
-                Círculos de mujeres, talleres de autoconocimiento, y ceremonias de paso. Un lugar para reconectar con nuestra esencia.
-              </p>
+              <h2 className="text-lg sm:text-2xl font-bold mb-4 sm:mb-6">Nuestra Misión Hoy</h2>
+              <ul className="space-y-4 sm:space-y-6 text-[11px] sm:text-[13px] leading-relaxed">
+                <li>
+                  <strong>Humanización:</strong> Promovemos un enfoque más humano de la vida, el embarazo y el nacimiento.
+                </li>
+                <li>
+                  <strong>Espacio Público:</strong> Sacamos la carpa a espacios públicos para que sea un lugar creativo, participativo y abierto a todos y todas.
+                </li>
+                <li>
+                  <strong>Derechos:</strong> Sensibilizar sobre los derechos sexuales y reproductivos en el embarazo, parto y puerperio.
+                </li>
+                <li>
+                  <strong>Objetivo:</strong> Lograr un nacimiento sin violencia.
+                </li>
+              </ul>
               {/* Inner shadow for fold depth */}
               <div className="absolute inset-0 bg-gradient-to-r from-black/5 via-transparent to-black/5 pointer-events-none" />
             </div>
             
             {/* Outside Back (Center panel of the image) */}
             <div 
-              className="absolute inset-0 bg-white p-4 sm:p-6 flex flex-col text-[10px] sm:text-sm border-l border-stone-200 cursor-pointer"
+              className="absolute inset-0 bg-white p-4 sm:p-6 flex flex-col justify-center text-[11px] sm:text-sm border-l border-stone-200 cursor-pointer"
               style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               onClick={handlePanelClick}
             >
@@ -111,7 +122,7 @@ export default function App() {
                 </div>
               </div>
               
-              <div className="text-stone-800 space-y-2 sm:space-y-4 flex-1">
+              <div className="text-stone-800 space-y-2 sm:space-y-4">
                 <p className="font-medium text-xs sm:text-base">Contacto:</p>
                 
                 <div>
@@ -122,7 +133,7 @@ export default function App() {
                       className="flex items-center gap-1.5 w-full text-left group"
                     >
                       <Mail size={12} className="shrink-0 text-stone-400 group-hover:text-[#4a86e8] transition-colors" />
-                      <span className="text-[9px] sm:text-xs break-all group-hover:text-[#4a86e8] transition-colors">relacahupanuruguaydoulas@gmail.com</span>
+                      <span className="text-[10px] sm:text-xs break-all group-hover:text-[#4a86e8] transition-colors">relacahupanuruguaydoulas@gmail.com</span>
                     </button>
                   </div>
                 </div>
@@ -131,18 +142,18 @@ export default function App() {
                   <p className="font-medium leading-tight">Instituto Perinatal del Uruguay (IPU)</p>
                   <div className="mt-1.5 text-stone-600 space-y-1 sm:space-y-1.5">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[9px] sm:text-xs text-stone-500">Directora: Rosa Rinaldi</span>
+                      <span className="text-[10px] sm:text-xs text-stone-500">Directoras: Rosa Rinaldi y Alejandra Di Matteo</span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <Phone size={12} className="shrink-0 text-stone-400" />
-                      <span className="text-[9px] sm:text-xs">099 059 575</span>
+                      <span className="text-[10px] sm:text-xs">099 059 575</span>
                     </div>
                     <button
                       onClick={() => copyToClipboard('institutoperinataldeluruguay@gmail.com')}
                       className="flex items-center gap-1.5 w-full text-left group"
                     >
                       <Mail size={12} className="shrink-0 text-stone-400 group-hover:text-[#4a86e8] transition-colors" />
-                      <span className="text-[9px] sm:text-xs break-all group-hover:text-[#4a86e8] transition-colors">institutoperinataldeluruguay@gmail.com</span>
+                      <span className="text-[10px] sm:text-xs break-all group-hover:text-[#4a86e8] transition-colors">institutoperinataldeluruguay@gmail.com</span>
                     </button>
                   </div>
                 </div>
@@ -180,26 +191,56 @@ export default function App() {
           >
             {/* Inside Right */}
             <div 
-              className="absolute inset-0 bg-white p-5 sm:p-8 flex flex-col border-l border-stone-200 cursor-pointer"
+              className="absolute inset-0 bg-white p-6 sm:p-10 flex flex-col items-center justify-center border-l border-stone-200 cursor-pointer"
               style={{ backfaceVisibility: 'hidden' }}
               onClick={handlePanelClick}
             >
-              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#ff4040]">Participa</h2>
-              <p className="text-stone-700 leading-relaxed text-xs sm:text-base">
-                Únete a nuestra comunidad y sé parte de este movimiento de transformación.
+              {/* Decorative top line */}
+              <div className="w-10 sm:w-14 h-[2px] bg-[#ff4040] mb-6 sm:mb-8" />
+              
+              <p className="text-lg sm:text-[22px] font-bold leading-tight text-center text-stone-900 tracking-tight">
+                En el útero se gesta la humanidad
               </p>
+
+              {/* Decorative divider */}
+              <div className="w-6 sm:w-8 h-[2px] bg-[#ff4040] my-5 sm:my-7" />
+
+              <p className="text-lg sm:text-[22px] font-bold leading-tight text-center text-stone-900 tracking-tight">
+                Necesitamos un gobierno presente y una sociedad consciente
+              </p>
+
+              {/* Decorative bottom line */}
+              <div className="w-10 sm:w-14 h-[2px] bg-[#ff4040] mt-6 sm:mt-8" />
+
+              <div className="relative w-full aspect-[2/1.5] sm:aspect-[2/2] mt-0.5 sm:mt-1 mb-2 sm:mb-4">
+                <div className="absolute inset-0 border border-[#d4a843] rounded-t-full rounded-b-sm m-1 sm:m-2 z-10 pointer-events-none">
+                  {/* Diamonds */}
+                  <div className="absolute top-1/2 -left-1.5 w-2 h-2 sm:w-3 sm:h-3 bg-[#d4a843] rotate-45"></div>
+                  <div className="absolute top-1/2 -right-1.5 w-2 h-2 sm:w-3 sm:h-3 bg-[#d4a843] rotate-45"></div>
+                </div>
+                <div className="w-full h-full p-1.5 sm:p-3">
+                  <div className="w-full h-full rounded-t-full rounded-b-sm overflow-hidden bg-red-900">
+                    <img 
+                      src="/maternidad_img.png" 
+                      alt="Mujer embarazada" 
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                </div>
+              </div>
               {/* Inner shadow for fold depth */}
               <div className="absolute inset-0 bg-gradient-to-l from-transparent to-black/5 pointer-events-none" />
             </div>
             
             {/* Outside Flap (Left panel of the image, Folds in first) */}
             <div 
-              className="absolute inset-0 bg-[#ff4040] p-4 sm:p-6 flex flex-col border-r border-red-500/50 text-stone-900 cursor-pointer"
+              className="absolute inset-0 bg-[#ff4040] p-4 sm:p-6 flex flex-col justify-center border-r border-red-500/50 text-stone-900 cursor-pointer"
               style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
               onClick={handlePanelClick}
             >
               {/* Arched Image */}
-              <div className="relative w-full aspect-[2/2.2] sm:aspect-[2/2.8] mt-1 sm:mt-2 mb-3 sm:mb-8">
+              <div className="relative w-full aspect-[2/1.5] sm:aspect-[2/2] mt-0.5 sm:mt-1 mb-2 sm:mb-4">
                 <div className="absolute inset-0 border border-white rounded-t-full rounded-b-sm m-1 sm:m-2 z-10 pointer-events-none">
                   {/* Diamonds */}
                   <div className="absolute top-1/2 -left-1.5 w-2 h-2 sm:w-3 sm:h-3 bg-white rotate-45"></div>
@@ -208,23 +249,26 @@ export default function App() {
                 <div className="w-full h-full p-1.5 sm:p-3">
                   <div className="w-full h-full rounded-t-full rounded-b-sm overflow-hidden bg-red-900">
                     <img 
-                      src="https://images.unsplash.com/photo-1518893063132-36e46dbe2428?w=400&q=80" 
+                      src="/carpa_interior.png" 
                       alt="Interior Carpa" 
-                      className="w-full h-full object-cover opacity-80 mix-blend-luminosity"
+                      className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
                     />
                   </div>
                 </div>
               </div>
 
-              <h2 className="text-sm sm:text-lg font-medium leading-tight mb-2 sm:mb-4">¿Qué es la Carpa Roja? (El Origen)</h2>
+              <h2 className="text-sm sm:text-lg font-medium leading-tight mb-1.5 sm:mb-3">¿Qué es la Carpa Roja? (El Origen)</h2>
               
-              <ul className="list-disc pl-4 sm:pl-5 space-y-1.5 sm:space-y-3 text-[10px] sm:text-sm leading-snug">
+              <ul className="list-disc pl-4 sm:pl-5 space-y-1 sm:space-y-3 text-[11px] sm:text-[13px] leading-snug">
                 <li className="pl-1">
                   <strong>Un espacio ancestral:</strong> Inspirado en las tradiciones del Antiguo Testamento, donde el linaje materno perpetuaba el conocimiento.
                 </li>
                 <li className="pl-1">
-                  <strong>El refugio femenino:</strong> Históricamente, era el lugar donde las mujeres se reunían...
+                  <strong>El refugio femenino:</strong> Históricamente, era el lugar donde las mujeres se reunían durante el ciclo femenino, el posparto o la enfermedad.
+                </li>
+                <li className="pl-1">
+                  <strong>Sabiduría compartida:</strong> Un sitio para compartir historias, testimonios y aprender sobre el uso de hierbas y formas de sanación natural.
                 </li>
               </ul>
 
@@ -249,14 +293,24 @@ export default function App() {
           >
             {/* Inside Left */}
             <div 
-              className="absolute inset-0 bg-white p-5 sm:p-8 flex flex-col border-r border-stone-200 cursor-pointer"
+              className="absolute inset-0 bg-white p-4 sm:p-6 flex flex-col justify-center border-r border-stone-200 cursor-pointer"
               style={{ backfaceVisibility: 'hidden' }}
               onClick={handlePanelClick}
             >
-              <h2 className="text-xl sm:text-2xl font-bold mb-4 sm:mb-6 text-[#ff4040]">La Experiencia</h2>
-              <p className="text-stone-700 leading-relaxed text-xs sm:text-base">
-                Un espacio diseñado para conectar, sanar y compartir.
-              </p>
+              <div className="space-y-3 sm:space-y-4 text-[10px] sm:text-[12px] leading-relaxed text-stone-700">
+                <p>
+                  En tiempos actuales, recuperamos ese símbolo para favorecer el encuentro ciudadano y la comunicación entre mujeres.
+                </p>
+                <p>
+                  En Uruguay, este movimiento marcó un antes y un después el lunes 7 de junio del 2010, cuando se instaló la primera Carpa Roja frente al Centro Hospitalario Pereira Rossell en Montevideo. Bajo el lema <strong className="text-stone-900">"El parto, seamos parte"</strong>, esa primera carpa fue el inicio de una campaña de sensibilización nacional que recorrió plazas de Montevideo, Canelones y Maldonado.
+                </p>
+                <p>
+                  Lo que nació como una acción para visibilizar los derechos reproductivos y denunciar las intervenciones rutinarias innecesarias (reprobadas por la OMS), se convirtió en un espacio itinerante de reflexión, arte y testimonios de vida.
+                </p>
+                <p className="italic text-stone-500 border-l-2 border-[#ff4040] pl-2 sm:pl-3">
+                  "La carpa es un espacio creativo y participativo, abierto a todas las personas que quieran colectivizar un enfoque más humano de la vida."
+                </p>
+              </div>
               {/* Inner shadow for fold depth */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent to-black/5 pointer-events-none" />
             </div>
