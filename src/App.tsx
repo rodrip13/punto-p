@@ -382,8 +382,8 @@ export default function App() {
         </button>
       </div>
 
-      {/* Zoom Controls — fixed overlay, bottom-right */}
-      <div className="fixed bottom-20 right-4 z-50 flex flex-col items-center gap-2">
+      {/* Zoom Controls — fixed overlay, bottom-right, desktop only */}
+      <div className="fixed bottom-20 right-4 z-50 hidden sm:flex flex-col items-center gap-2">
         {/* Zoom percentage badge */}
         <div className="bg-black/70 text-white text-xs font-mono px-2 py-1 rounded-md mb-1 min-w-[48px] text-center">
           {zoomPercent}%
