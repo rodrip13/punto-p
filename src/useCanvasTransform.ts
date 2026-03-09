@@ -13,6 +13,8 @@ const INITIAL_DESKTOP_SCALE = 1;
 const FOCUS_SCALE_MOBILE = 1.05;
 const FOCUS_SCALE_DESKTOP = 1.2;
 const DRAG_THRESHOLD = 8; // px — clicks below this are treated as taps, not drags
+const MEDIUM_POINT_DESKTOP = 315;
+const MEDIUM_POINT_MOBILE = 200;
 
 function isMobile() {
   return window.innerWidth < 768;
@@ -275,6 +277,28 @@ export function useCanvasTransform() {
     animatingTimeout.current = setTimeout(() => setIsAnimating(false), 500);
   }, []);
 
+  // ---- Shift view for open/close (centers the fold line on both sides) ----
+  const shiftViewForOpen = useCallback((isOpen: boolean, isFlipped: boolean) => {
+    setIsAnimating(true);
+    let shiftAmount = 0;
+    
+    if (isOpen) {
+      // When open, shift to center the fold line
+      // When flipped, shift in opposite direction
+      const baseShift = isMobile() ? MEDIUM_POINT_MOBILE : MEDIUM_POINT_DESKTOP;
+      shiftAmount = isFlipped ? -baseShift : baseShift;
+    }
+    // When closed, no shift needed (shiftAmount stays 0)
+    
+    setTransform(prev => ({
+      scale: Math.max(prev.scale, isMobile() ? INITIAL_MOBILE_SCALE : INITIAL_DESKTOP_SCALE),
+      translateX: shiftAmount,
+      translateY: 0,
+    }));
+    clearTimeout(animatingTimeout.current);
+    animatingTimeout.current = setTimeout(() => setIsAnimating(false), 500);
+  }, []);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => clearTimeout(animatingTimeout.current);
@@ -290,5 +314,6 @@ export function useCanvasTransform() {
     fitToScreen,
     focusOnElement,
     centerView,
+    shiftViewForOpen,
   };
 }
