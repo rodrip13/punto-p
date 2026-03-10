@@ -54,6 +54,7 @@ export function useCanvasTransform() {
   });
 
   const handleTouchStart = useCallback((e: TouchEvent) => {
+    if ((e.target as Element).closest('[data-no-pan]')) return;
     setIsAnimating(false);
     if (e.touches.length === 2) {
       e.preventDefault();
@@ -134,6 +135,7 @@ export function useCanvasTransform() {
   const handleMouseDown = useCallback((e: MouseEvent) => {
     // Only left button
     if (e.button !== 0) return;
+    if ((e.target as Element).closest('[data-no-pan]')) return;
     setIsAnimating(false);
     isPanning.current = true;
     dragDistance.current = 0;

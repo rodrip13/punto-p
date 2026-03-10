@@ -1,7 +1,8 @@
 import { useState, useCallback, type MouseEvent, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { RotateCcw, BookOpen, X, ZoomIn, ZoomOut, Maximize, Move, Mail, Phone, Check, Globe, AtSign, MapPin } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import { RotateCcw, BookOpen, X, ZoomIn, ZoomOut, Maximize, Move, Mail, Phone, Check, Globe, AtSign, MapPin, ShoppingBag } from 'lucide-react';
 import { useCanvasTransform } from './useCanvasTransform';
+import { MENU_ITEMS, type MenuItem, getPastaGroups, getSalsas } from './menuData';
 
 export default function App() {
   const [isOpen, setIsOpen] = useState(false);
@@ -9,6 +10,15 @@ export default function App() {
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
   const [isMobileView, setIsMobileView] = useState(typeof window !== 'undefined' && window.innerWidth < 640);
   const { containerRef, transform, isAnimating, zoomIn, zoomOut, resetTransform, fitToScreen, focusOnElement, centerView, shiftViewForOpen } = useCanvasTransform();
+
+  // Cart state
+  type CartState = Record<string, number>;
+  const [cart, setCart] = useState<CartState>({});
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const cartItems = MENU_ITEMS.filter(item => (cart[item.id] ?? 0) > 0);
+  const cartCount = cartItems.length;
+  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * cart[item.id], 0);
 
   // Handle window resize for responsive dimensions
   useEffect(() => {
@@ -25,6 +35,48 @@ export default function App() {
       setTimeout(() => setCopiedEmail(null), 2000);
     });
   }, []);
+
+  const addToCart = useCallback((item: MenuItem) => {
+    setCart(prev => ({
+      ...prev,
+      [item.id]: Math.round(((prev[item.id] ?? 0) + item.step) * 10) / 10,
+    }));
+  }, []);
+
+  const removeFromCart = useCallback((item: MenuItem) => {
+    setCart(prev => {
+      const next = Math.round(((prev[item.id] ?? 0) - item.step) * 10) / 10;
+      if (next <= 0) {
+        const { [item.id]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [item.id]: next };
+    });
+  }, []);
+
+  const buildWhatsAppUrl = useCallback((): string => {
+    const lines: string[] = ['¡Hola Punto P! Quiero hacer un pedido 🍝', ''];
+    const pastas = cartItems.filter(i => i.category === 'pasta');
+    const salsas = cartItems.filter(i => i.category === 'salsa');
+    if (pastas.length) {
+      lines.push('*Pastas:*');
+      pastas.forEach(item => {
+        const q = cart[item.id];
+        lines.push(`• ${item.name} (${item.description}): ${q} kg × $${item.price} = $${q * item.price}`);
+      });
+      lines.push('');
+    }
+    if (salsas.length) {
+      lines.push('*Salsas:*');
+      salsas.forEach(item => {
+        const q = cart[item.id];
+        lines.push(`• ${item.name}: ${q} ud × $${item.price} = $${q * item.price}`);
+      });
+      lines.push('');
+    }
+    lines.push(`*Total: $${cartTotal}*`, '', '¡Muchas gracias! 🙌');
+    return `https://wa.me/59898895881?text=${encodeURIComponent(lines.join('\n'))}`;
+  }, [cartItems, cart, cartTotal]);
 
   const handleOpenToggle = () => {
     const newIsOpen = !isOpen;
@@ -119,84 +171,83 @@ export default function App() {
                 </span>
               </h2>
               
-              <div className="space-y-4 sm:space-y-6 flex-1">
-                <div className="group">
-                  <div className="flex items-baseline justify-between mb-0.5 sm:mb-1">
-                    <h3 className="font-serif text-sm sm:text-lg font-bold group-hover:underline decoration-1 underline-offset-4 text-black">
-                      Ñoquis Rellenos
-                    </h3>
-                    <div className="flex-grow mx-2 sm:mx-4 border-b border-dotted border-gray-400 h-1"></div>
-                    <span className="font-sans text-sm sm:text-base font-semibold text-black">$800</span>
-                  </div>
-                  <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug">
-                    Rellenos de muzzarella en masa de rúcula y semillas.
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug mb-1 sm:mb-2">
-                    Rellenos de muzzarella en masa de espinaca.
-                  </p>
-                </div>
+              <div className="space-y-3 sm:space-y-5 flex-1 overflow-y-auto">
 
-                <div className="group">
-                  <div className="flex items-baseline justify-between mb-0.5 sm:mb-1">
-                    <h3 className="font-serif text-sm sm:text-lg font-bold group-hover:underline decoration-1 underline-offset-4 text-black">
-                      Ñoquis Clásicos
-                    </h3>
-                    <div className="flex-grow mx-2 sm:mx-4 border-b border-dotted border-gray-400 h-1"></div>
-                    <span className="font-sans text-sm sm:text-base font-semibold text-black">$600</span>
+                {/* Grupos de pasta */}
+                {getPastaGroups().map(group => (
+                  <div key={group.name}>
+                    <div className="flex items-baseline justify-between mb-0.5 sm:mb-1">
+                      <h3 className="font-serif text-sm sm:text-lg font-bold text-black">{group.name}</h3>
+                      <div className="flex-grow mx-2 sm:mx-4 border-b border-dotted border-gray-400 h-1"></div>
+                      <span className="font-sans text-sm sm:text-base font-semibold text-black">${group.price}/kg</span>
+                    </div>
+                    {group.items.map(item => {
+                      const qty = cart[item.id] ?? 0;
+                      return (
+                        <div key={item.id} className="flex items-center justify-between py-0.5">
+                          <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug flex-1">
+                            {item.description}
+                          </p>
+                          <div data-no-pan className="flex items-center gap-1 ml-2 flex-shrink-0">
+                            {qty > 0 && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removeFromCart(item); }}
+                                className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs leading-none transition-colors"
+                                style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                              >−</button>
+                            )}
+                            {qty > 0 && (
+                              <span className="text-[10px] sm:text-xs font-semibold text-stone-800 w-8 text-center">
+                                {qty}kg
+                              </span>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); addToCart(item); }}
+                              className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs leading-none transition-colors"
+                              style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                            >+</button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug">
-                    Parmesano.
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug">
-                    Puerro y nuez.
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug">
-                    Limón y gengibre.
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug mb-1 sm:mb-2">
-                    Morrón asado.
-                  </p>
-                </div>
+                ))}
 
-                <div className="group">
-                  <div className="flex items-baseline justify-between mb-0.5 sm:mb-1">
-                    <h3 className="font-serif text-sm sm:text-lg font-bold group-hover:underline decoration-1 underline-offset-4 text-black">
-                      Raviolones
-                    </h3>
-                    <div className="flex-grow mx-2 sm:mx-4 border-b border-dotted border-gray-400 h-1"></div>
-                    <span className="font-sans text-sm sm:text-base font-semibold text-black">$400</span>
-                  </div>
-                  <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug">
-                    Rellenos de ricota, espinaca y nuez.
-                  </p>
-                  <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug mb-1 sm:mb-2">
-                    Rellenos de berenjena, tomates secos y albahaca.
-                  </p>
-                </div>
-
-                <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t-2 border-dotted border-gray-300">
+                {/* Sección salsas */}
+                <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t-2 border-dotted border-gray-300">
                   <h3 className="font-serif text-base sm:text-xl font-bold mb-2 sm:mb-3 text-center text-black uppercase tracking-widest py-1 sm:py-1 flex items-center justify-center">
                     Salsas <span className="font-sans text-[9px] sm:text-[10px] font-normal normal-case tracking-normal text-gray-500 ml-1 sm:ml-2 mt-[2px]">(250gr)</span>
                   </h3>
                   <div className="space-y-1 sm:space-y-1 px-1 sm:px-2">
-                    <div className="flex items-baseline justify-between text-[11px] sm:text-xs text-gray-600 font-medium">
-                      <span>Tomates asados</span>
-                      <div className="flex-grow mx-2 sm:mx-3 border-b border-dotted border-gray-300 h-1"></div>
-                      <span className="font-bold text-black">$250</span>
-                    </div>
-                    <div className="flex items-baseline justify-between text-[11px] sm:text-xs text-gray-600 font-medium">
-                      <span>Crema de morrón</span>
-                      <div className="flex-grow mx-2 sm:mx-3 border-b border-dotted border-gray-300 h-1"></div>
-                      <span className="font-bold text-black">$280</span>
-                    </div>
-                    <div className="flex items-baseline justify-between text-[11px] sm:text-xs text-gray-600 font-medium">
-                      <span>Crema de parmesano</span>
-                      <div className="flex-grow mx-2 sm:mx-3 border-b border-dotted border-gray-300 h-1"></div>
-                      <span className="font-bold text-black">$320</span>
-                    </div>
+                    {getSalsas().map(item => {
+                      const qty = cart[item.id] ?? 0;
+                      return (
+                        <div key={item.id} className="flex items-center justify-between">
+                          <span className="text-[11px] sm:text-xs text-gray-600 font-medium flex-1">{item.name}</span>
+                          <div className="flex-grow mx-2 sm:mx-3 border-b border-dotted border-gray-300 h-1"></div>
+                          <span className="font-bold text-black text-[11px] sm:text-xs mr-2">${item.price}</span>
+                          <div data-no-pan className="flex items-center gap-1 flex-shrink-0">
+                            {qty > 0 && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removeFromCart(item); }}
+                                className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs leading-none transition-colors"
+                                style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                              >−</button>
+                            )}
+                            {qty > 0 && (
+                              <span className="text-[10px] sm:text-xs font-semibold text-stone-800 w-5 text-center">{qty}</span>
+                            )}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); addToCart(item); }}
+                              className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs leading-none transition-colors"
+                              style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                            >+</button>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-
 
               </div>
 
@@ -441,6 +492,112 @@ export default function App() {
 
         </div>{/* end transformable content layer */}
       </div>{/* end canvas area */}
+
+      {/* Floating cart button */}
+      <button
+        onClick={() => setIsCartOpen(true)}
+        className="fixed bottom-6 right-4 z-50 w-14 h-14 bg-stone-800 hover:bg-stone-700 text-white rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform"
+        aria-label="Ver pedido"
+      >
+        <ShoppingBag size={22} />
+        {cartCount > 0 && (
+          <span className="absolute -top-1 -right-1 bg-stone-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center pointer-events-none">
+            {cartCount}
+          </span>
+        )}
+      </button>
+
+      {/* Cart drawer */}
+      <AnimatePresence>
+        {isCartOpen && (
+          <>
+            <motion.div
+              key="cart-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 z-[60] bg-black/50"
+              onClick={() => setIsCartOpen(false)}
+            />
+            <motion.div
+              key="cart-drawer"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ duration: 0.35, ease: [0.32, 0.72, 0, 1] }}
+              className="fixed top-0 right-0 bottom-0 z-[70] w-full max-w-xs bg-white flex flex-col shadow-2xl"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
+                <h2 className="font-serif text-xl font-bold text-stone-900">Tu pedido</h2>
+                <button
+                  onClick={() => setIsCartOpen(false)}
+                  className="p-2 rounded-full hover:bg-stone-100 transition-colors"
+                >
+                  <X size={20} className="text-stone-600" />
+                </button>
+              </div>
+
+              {/* Item list */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+                {cartItems.length === 0 ? (
+                  <p className="text-stone-400 text-sm text-center py-12">
+                    Todavía no agregaste items.<br />
+                    <span className="text-stone-300 text-xs">Usá los botones + en el menú.</span>
+                  </p>
+                ) : cartItems.map(item => (
+                  <div key={item.id} className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-stone-800 leading-tight">{item.name}</p>
+                      {item.description && <p className="text-xs text-stone-400 mt-0.5">{item.description}</p>}
+                      <p className="text-xs text-stone-400 mt-0.5">
+                        ${item.price}/{item.unit} · {cart[item.id]} {item.unit} ={' '}
+                        <span className="text-stone-700 font-semibold">${item.price * cart[item.id]}</span>
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
+                      <button
+                        onClick={() => removeFromCart(item)}
+                        className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-600 font-bold text-base leading-none transition-colors"
+                      >−</button>
+                      <span className="text-sm font-semibold text-stone-700 w-9 text-center">
+                        {cart[item.id]}{item.unit === 'kg' ? 'kg' : 'ud'}
+                      </span>
+                      <button
+                        onClick={() => addToCart(item)}
+                        className="w-7 h-7 rounded-full bg-stone-800 hover:bg-stone-700 flex items-center justify-center text-white font-bold text-base leading-none transition-colors"
+                      >+</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Footer */}
+              {cartItems.length > 0 && (
+                <div className="px-5 py-5 border-t border-stone-200 space-y-4">
+                  <div className="flex justify-between items-baseline">
+                    <span className="font-serif text-lg font-bold text-stone-900">Total</span>
+                    <span className="font-serif text-2xl font-bold text-stone-900">${cartTotal}</span>
+                  </div>
+                  <a
+                    href={buildWhatsAppUrl()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#1ebe5d] text-white font-bold text-sm tracking-wide py-4 rounded-2xl transition-colors shadow-md shadow-green-200 active:scale-[0.98]"
+                  >
+                    <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/>
+                      <path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.118 1.528 5.855L.057 23.617a.75.75 0 0 0 .917.931l5.938-1.554A11.945 11.945 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22a9.944 9.944 0 0 1-5.031-1.36l-.362-.213-3.523.923.939-3.432-.234-.374A9.944 9.944 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/>
+                    </svg>
+                    Hacer pedido por WhatsApp
+                  </a>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Brochure controls — fixed at bottom center, outside transform */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-3">
