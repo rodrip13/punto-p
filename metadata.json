@@ -1,5 +1,5 @@
 {
-  "name": "Folleto Tríptico 3D",
-  "description": "Un folleto tríptico interactivo en 2D con animaciones y sombras 3D.",
+  "name": "Folleto Díptico 3D",
+  "description": "Un folleto díptico interactivo con animación de pliegue 3D, simulando un papel plegado de 2 carillas.",
   "requestFramePermissions": []
 }
