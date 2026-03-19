@@ -49,6 +49,15 @@ export function useCanvasTransform(onTransformUpdate?: () => void) {
   const dragDistance = useRef(0);
   const animatingTimeout = useRef<ReturnType<typeof setTimeout>>();
 
+  // RAF-throttle refs — accumulate deltas between frames
+  const rafId = useRef<number>();                              // shared for pan (touch + mouse) & pinch
+  const rafWheelId = useRef<number>();                          // separate channel for wheel zoom
+  const pendingPanDelta = useRef({ dx: 0, dy: 0 });            // accumulated pan translation
+  const pendingPinch = useRef({ scaleFactor: 1, dx: 0, dy: 0 }); // accumulated pinch gesture
+  const pendingWheelScale = useRef(1);                         // accumulated multiplicative zoom factor
+  const pendingWheelCursor = useRef({ clientX: 0, clientY: 0 }); // last cursor pos for zoom-towards-cursor
+  const isPinchGesture = useRef(false);                        // true when current RAF batch is pinch, not pan
+
   // ---- Pinch-to-zoom (touch) ----
   const getDistance = (t1: Touch, t2: Touch) => {
     const dx = t1.clientX - t2.clientX;
@@ -76,6 +85,39 @@ export function useCanvasTransform(onTransformUpdate?: () => void) {
     }
   }, []);
 
+  // Helper: flush any pending pan/pinch RAF and apply immediately
+  const flushPanRaf = useCallback(() => {
+    if (rafId.current !== undefined) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = undefined;
+
+      if (isPinchGesture.current) {
+        const p = pendingPinch.current;
+        if (p.scaleFactor !== 1 || p.dx !== 0 || p.dy !== 0) {
+          setTransform(prev => {
+            const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev.scale * p.scaleFactor));
+            return {
+              scale: newScale,
+              translateX: prev.translateX + p.dx,
+              translateY: prev.translateY + p.dy,
+            };
+          });
+          pendingPinch.current = { scaleFactor: 1, dx: 0, dy: 0 };
+        }
+      } else {
+        const d = pendingPanDelta.current;
+        if (d.dx !== 0 || d.dy !== 0) {
+          setTransform(prev => ({
+            ...prev,
+            translateX: prev.translateX + d.dx,
+            translateY: prev.translateY + d.dy,
+          }));
+          pendingPanDelta.current = { dx: 0, dy: 0 };
+        }
+      }
+    }
+  }, [setTransform]);
+
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (e.touches.length === 2) {
       e.preventDefault();
@@ -83,61 +125,101 @@ export function useCanvasTransform(onTransformUpdate?: () => void) {
       const newCenter = getCenter(e.touches[0], e.touches[1]);
       const scaleFactor = newDist / lastPinchDistance.current;
 
-      setTransform(prev => {
-        const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev.scale * scaleFactor));
-        // Adjust translation so zoom is centered on pinch point
-        const dx = newCenter.x - lastPinchCenter.current.x;
-        const dy = newCenter.y - lastPinchCenter.current.y;
-        return {
-          scale: newScale,
-          translateX: prev.translateX + dx,
-          translateY: prev.translateY + dy,
-        };
-      });
+      // Accumulate pinch delta
+      pendingPinch.current.scaleFactor *= scaleFactor;
+      pendingPinch.current.dx += newCenter.x - lastPinchCenter.current.x;
+      pendingPinch.current.dy += newCenter.y - lastPinchCenter.current.y;
+      isPinchGesture.current = true;
 
+      // Update refs synchronously (needed for next event's delta calc)
       lastPinchDistance.current = newDist;
       lastPinchCenter.current = newCenter;
       isPanning.current = false;
+
+      // Schedule one setTransform per frame
+      if (rafId.current === undefined) {
+        rafId.current = requestAnimationFrame(() => {
+          rafId.current = undefined;
+          const p = pendingPinch.current;
+          pendingPinch.current = { scaleFactor: 1, dx: 0, dy: 0 };
+          setTransform(prev => {
+            const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev.scale * p.scaleFactor));
+            return {
+              scale: newScale,
+              translateX: prev.translateX + p.dx,
+              translateY: prev.translateY + p.dy,
+            };
+          });
+        });
+      }
     } else if (e.touches.length === 1 && isPanning.current) {
       const dx = e.touches[0].clientX - lastPanPoint.current.x;
       const dy = e.touches[0].clientY - lastPanPoint.current.y;
       dragDistance.current += Math.abs(dx) + Math.abs(dy);
       lastPanPoint.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
 
-      setTransform(prev => ({
-        ...prev,
-        translateX: prev.translateX + dx,
-        translateY: prev.translateY + dy,
-      }));
+      // Accumulate pan delta
+      pendingPanDelta.current.dx += dx;
+      pendingPanDelta.current.dy += dy;
+      isPinchGesture.current = false;
+
+      // Schedule one setTransform per frame
+      if (rafId.current === undefined) {
+        rafId.current = requestAnimationFrame(() => {
+          rafId.current = undefined;
+          const d = pendingPanDelta.current;
+          pendingPanDelta.current = { dx: 0, dy: 0 };
+          setTransform(prev => ({
+            ...prev,
+            translateX: prev.translateX + d.dx,
+            translateY: prev.translateY + d.dy,
+          }));
+        });
+      }
     }
-  }, []);
+  }, [setTransform]);
 
   const handleTouchEnd = useCallback(() => {
+    flushPanRaf();
     isPanning.current = false;
-  }, []);
+  }, [flushPanRaf]);
 
   // ---- Mouse wheel zoom (desktop) ----
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.93 : 1.07;
-    
-    setTransform(prev => {
-      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev.scale * delta));
-      // Zoom towards cursor
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (rect) {
-        const cx = e.clientX - rect.left - rect.width / 2;
-        const cy = e.clientY - rect.top - rect.height / 2;
-        const scaleChange = newScale / prev.scale;
-        return {
-          scale: newScale,
-          translateX: prev.translateX + cx * (1 - scaleChange),
-          translateY: prev.translateY + cy * (1 - scaleChange),
-        };
-      }
-      return { ...prev, scale: newScale };
-    });
-  }, []);
+    const factor = e.deltaY > 0 ? 0.93 : 1.07;
+
+    // Accumulate multiplicative zoom & track last cursor position
+    pendingWheelScale.current *= factor;
+    pendingWheelCursor.current = { clientX: e.clientX, clientY: e.clientY };
+
+    // Schedule one setTransform per frame
+    if (rafWheelId.current === undefined) {
+      rafWheelId.current = requestAnimationFrame(() => {
+        rafWheelId.current = undefined;
+        const accumulated = pendingWheelScale.current;
+        const cursor = pendingWheelCursor.current;
+        pendingWheelScale.current = 1;
+
+        setTransform(prev => {
+          const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, prev.scale * accumulated));
+          // Zoom towards cursor
+          const rect = containerRef.current?.getBoundingClientRect();
+          if (rect) {
+            const cx = cursor.clientX - rect.left - rect.width / 2;
+            const cy = cursor.clientY - rect.top - rect.height / 2;
+            const scaleChange = newScale / prev.scale;
+            return {
+              scale: newScale,
+              translateX: prev.translateX + cx * (1 - scaleChange),
+              translateY: prev.translateY + cy * (1 - scaleChange),
+            };
+          }
+          return { ...prev, scale: newScale };
+        });
+      });
+    }
+  }, [setTransform]);
 
   // ---- Mouse drag pan (desktop) ----
   const handleMouseDown = useCallback((e: MouseEvent) => {
@@ -157,16 +239,30 @@ export function useCanvasTransform(onTransformUpdate?: () => void) {
     dragDistance.current += Math.abs(dx) + Math.abs(dy);
     lastPanPoint.current = { x: e.clientX, y: e.clientY };
 
-    setTransform(prev => ({
-      ...prev,
-      translateX: prev.translateX + dx,
-      translateY: prev.translateY + dy,
-    }));
-  }, []);
+    // Accumulate pan delta
+    pendingPanDelta.current.dx += dx;
+    pendingPanDelta.current.dy += dy;
+    isPinchGesture.current = false;
+
+    // Schedule one setTransform per frame
+    if (rafId.current === undefined) {
+      rafId.current = requestAnimationFrame(() => {
+        rafId.current = undefined;
+        const d = pendingPanDelta.current;
+        pendingPanDelta.current = { dx: 0, dy: 0 };
+        setTransform(prev => ({
+          ...prev,
+          translateX: prev.translateX + d.dx,
+          translateY: prev.translateY + d.dy,
+        }));
+      });
+    }
+  }, [setTransform]);
 
   const handleMouseUp = useCallback(() => {
+    flushPanRaf();
     isPanning.current = false;
-  }, []);
+  }, [flushPanRaf]);
 
   // ---- Attach/detach events ----
   useEffect(() => {
@@ -309,9 +405,13 @@ export function useCanvasTransform(onTransformUpdate?: () => void) {
     animatingTimeout.current = setTimeout(() => setIsAnimating(false), 500);
   }, []);
 
-  // Cleanup timeout on unmount
+  // Cleanup timeout and pending RAFs on unmount
   useEffect(() => {
-    return () => clearTimeout(animatingTimeout.current);
+    return () => {
+      clearTimeout(animatingTimeout.current);
+      if (rafId.current !== undefined) cancelAnimationFrame(rafId.current);
+      if (rafWheelId.current !== undefined) cancelAnimationFrame(rafWheelId.current);
+    };
   }, []);
 
   return {
