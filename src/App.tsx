@@ -1,15 +1,25 @@
-import { useState, useCallback, type MouseEvent, useEffect } from 'react';
+import { useState, useCallback, useRef, type MouseEvent, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { RotateCcw, BookOpen, X, ZoomIn, ZoomOut, Maximize, Move, Mail, Phone, Check, Globe, AtSign, MapPin, ShoppingBag } from 'lucide-react';
 import { useCanvasTransform } from './useCanvasTransform';
 import { MENU_ITEMS, type MenuItem, getPastaGroups, getSalsas } from './menuData';
+import { usePerformanceMonitor } from './usePerformanceMonitor';
+import { PerformanceOverlay } from './PerformanceOverlay';
+
+const perfEnabled = new URLSearchParams(window.location.search).has('perf');
 
 export default function App() {
+  const { metrics, renderCountRef, transformCountRef } = usePerformanceMonitor(perfEnabled);
+
+  // Count every render of App
+  if (perfEnabled) renderCountRef.current++;
   const [isOpen, setIsOpen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
   const [isMobileView, setIsMobileView] = useState(typeof window !== 'undefined' && window.innerWidth < 640);
-  const { containerRef, transform, isAnimating, zoomIn, zoomOut, resetTransform, fitToScreen, focusOnElement, centerView, shiftViewForOpen } = useCanvasTransform();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const onTransformUpdate = useCallback(() => { transformCountRef.current++; }, [transformCountRef]);
+  const { containerRef, transform, isAnimating, zoomIn, zoomOut, resetTransform, fitToScreen, focusOnElement, centerView, shiftViewForOpen } = useCanvasTransform(perfEnabled ? onTransformUpdate : undefined);
 
   // Cart state
   type CartState = Record<string, number>;
@@ -24,6 +34,7 @@ export default function App() {
   useEffect(() => {
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 640);
+      setWindowWidth(window.innerWidth);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -98,7 +109,7 @@ export default function App() {
 
   // Card dimensions configuration
   const cardDimensions = {
-    mobile: { width: 340, height: 580 },
+    mobile: { width: Math.min(windowWidth - 20, 387), height: 580 },
     desktop: { width: 600, height: 720 },
   };
 
@@ -188,12 +199,11 @@ export default function App() {
                           <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug flex-1">
                             {item.description}
                           </p>
-                          <div data-no-pan className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <div data-no-pan className="flex items-center gap-1.5 ml-2 flex-shrink-0">
                             {qty > 0 && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); removeFromCart(item); }}
-                                className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs leading-none transition-colors"
-                                style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                                className="w-6 h-6 flex items-center justify-center rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs leading-none transition-colors"
                               >−</button>
                             )}
                             {qty > 0 && (
@@ -203,8 +213,7 @@ export default function App() {
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); addToCart(item); }}
-                              className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs leading-none transition-colors"
-                              style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                              className="w-6 h-6 flex items-center justify-center rounded-full bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs leading-none transition-colors"
                             >+</button>
                           </div>
                         </div>
@@ -222,16 +231,15 @@ export default function App() {
                     {getSalsas().map(item => {
                       const qty = cart[item.id] ?? 0;
                       return (
-                        <div key={item.id} className="flex items-center justify-between">
-                          <span className="text-[11px] sm:text-xs text-gray-600 font-medium flex-1">{item.name}</span>
+                        <div key={item.id} className="flex items-center justify-between py-0.5">
+                          <span className="text-[10px] sm:text-xs text-gray-500 font-light flex-1">{item.name}</span>
                           <div className="flex-grow mx-2 sm:mx-3 border-b border-dotted border-gray-300 h-1"></div>
-                          <span className="font-bold text-black text-[11px] sm:text-xs mr-2">${item.price}</span>
-                          <div data-no-pan className="flex items-center gap-1 flex-shrink-0">
+                          <span className="font-bold text-black text-[10px] sm:text-xs mr-2">${item.price}</span>
+                          <div data-no-pan className="flex items-center gap-1.5 flex-shrink-0">
                             {qty > 0 && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); removeFromCart(item); }}
-                                className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs leading-none transition-colors"
-                                style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                                className="w-6 h-6 flex items-center justify-center rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs leading-none transition-colors"
                               >−</button>
                             )}
                             {qty > 0 && (
@@ -239,8 +247,7 @@ export default function App() {
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); addToCart(item); }}
-                              className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs leading-none transition-colors"
-                              style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                              className="w-6 h-6 flex items-center justify-center rounded-full bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs leading-none transition-colors"
                             >+</button>
                           </div>
                         </div>
@@ -249,21 +256,6 @@ export default function App() {
                   </div>
                 </div>
 
-              </div>
-
-              <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-200 flex justify-center gap-4 sm:gap-8">
-                <div className="text-center flex flex-col items-center">
-                  <Move className="w-4 h-4 sm:w-5 sm:h-5 mb-1 sm:mb-1 text-gray-400" strokeWidth={1} />
-                  <p className="text-[7px] sm:text-[9px] uppercase tracking-wide font-semibold">Delivery</p>
-                </div>
-                <div className="text-center flex flex-col items-center">
-                  <Mail className="w-4 h-4 sm:w-5 sm:h-5 mb-1 sm:mb-1 text-gray-400" strokeWidth={1} />
-                  <p className="text-[7px] sm:text-[9px] uppercase tracking-wide font-semibold">Take Away</p>
-                </div>
-                <div className="text-center flex flex-col items-center">
-                  <Phone className="w-4 h-4 sm:w-5 sm:h-5 mb-1 sm:mb-1 text-gray-400" strokeWidth={1} />
-                  <p className="text-[7px] sm:text-[9px] uppercase tracking-wide font-semibold">Efectivo / QR</p>
-                </div>
               </div>
 
               {/* Inner shadow for fold depth */}
@@ -676,6 +668,8 @@ export default function App() {
           Email copiado al portapapeles
         </div>
       </div>
+
+      {perfEnabled && <PerformanceOverlay metrics={metrics} />}
 
     </div>
   );

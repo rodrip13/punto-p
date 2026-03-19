@@ -20,14 +20,22 @@ function isMobile() {
   return window.innerWidth < 768;
 }
 
-export function useCanvasTransform() {
+export function useCanvasTransform(onTransformUpdate?: () => void) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const [transform, setTransform] = useState<TransformState>(() => ({
+  const [_transform, _setTransform] = useState<TransformState>(() => ({
     scale: isMobile() ? INITIAL_MOBILE_SCALE : INITIAL_DESKTOP_SCALE,
     translateX: 0,
     translateY: 0,
   }));
+
+  // Wrapper that notifies the perf monitor on every update
+  const setTransform: typeof _setTransform = useCallback((value) => {
+    onTransformUpdate?.();
+    _setTransform(value);
+  }, [onTransformUpdate]);
+
+  const transform = _transform;
 
   const [isAnimating, setIsAnimating] = useState(false);
 
