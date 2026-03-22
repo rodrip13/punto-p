@@ -1,22 +1,50 @@
-import { useState, useCallback, type MouseEvent, useEffect } from 'react';
+import { useState, useCallback, useRef, useMemo, type MouseEvent, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RotateCcw, BookOpen, X, ZoomIn, ZoomOut, Maximize, Move, Mail, Phone, Check, Globe, AtSign, MapPin, ShoppingBag } from 'lucide-react';
+import { RotateCcw, BookOpen, X, ZoomIn, ZoomOut, Maximize, Move, Mail, Phone, Check, Globe, AtSign, MapPin, ShoppingBasket } from 'lucide-react';
 import { useCanvasTransform } from './useCanvasTransform';
-import { MENU_ITEMS, type MenuItem, getPastaGroups, getSalsas } from './menuData';
+import { type MenuItem, getPastaGroups, getSalsas } from './menuData';
+import { fetchMenuItems } from './menuApi';
+import { usePerformanceMonitor } from './usePerformanceMonitor';
+import { PerformanceOverlay } from './PerformanceOverlay';
+
+const perfEnabled = new URLSearchParams(window.location.search).has('perf');
 
 export default function App() {
+  const { metrics, renderCountRef, transformCountRef } = usePerformanceMonitor(perfEnabled);
+
+  // Count every render of App
+  if (perfEnabled) renderCountRef.current++;
   const [isOpen, setIsOpen] = useState(false);
   const [isFlipped, setIsFlipped] = useState(false);
   const [copiedEmail, setCopiedEmail] = useState<string | null>(null);
   const [isMobileView, setIsMobileView] = useState(typeof window !== 'undefined' && window.innerWidth < 640);
-  const { containerRef, transform, isAnimating, zoomIn, zoomOut, resetTransform, fitToScreen, focusOnElement, centerView, shiftViewForOpen } = useCanvasTransform();
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const onTransformUpdate = useCallback(() => { transformCountRef.current++; }, [transformCountRef]);
+  const { containerRef, transform, isAnimating, zoomIn, zoomOut, resetTransform, fitToScreen, focusOnElement, centerView, shiftViewForOpen } = useCanvasTransform(perfEnabled ? onTransformUpdate : undefined);
+
+  // Menu data — loaded once from API on mount
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isMenuLoading, setIsMenuLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMenuItems().then(items => {
+      setMenuItems(items);
+      setIsMenuLoading(false);
+    });
+  }, []);
+
+  const pastaGroups = useMemo(() => getPastaGroups(menuItems), [menuItems]);
+  const salsas      = useMemo(() => getSalsas(menuItems),      [menuItems]);
 
   // Cart state
   type CartState = Record<string, number>;
   const [cart, setCart] = useState<CartState>({});
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const cartItems = MENU_ITEMS.filter(item => (cart[item.id] ?? 0) > 0);
+  const cartItems = useMemo(
+    () => menuItems.filter(item => (cart[item.id] ?? 0) > 0),
+    [menuItems, cart]
+  );
   const cartCount = cartItems.length;
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price * cart[item.id], 0);
 
@@ -24,6 +52,7 @@ export default function App() {
   useEffect(() => {
     const handleResize = () => {
       setIsMobileView(window.innerWidth < 640);
+      setWindowWidth(window.innerWidth);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -98,7 +127,7 @@ export default function App() {
 
   // Card dimensions configuration
   const cardDimensions = {
-    mobile: { width: 340, height: 580 },
+    mobile: { width: Math.min(windowWidth - 20, 387), height: 580 },
     desktop: { width: 600, height: 720 },
   };
 
@@ -174,7 +203,7 @@ export default function App() {
               <div className="space-y-3 sm:space-y-5 flex-1 overflow-y-auto">
 
                 {/* Grupos de pasta */}
-                {getPastaGroups().map(group => (
+                {pastaGroups.map(group => (
                   <div key={group.name}>
                     <div className="flex items-baseline justify-between mb-0.5 sm:mb-1">
                       <h3 className="font-serif text-sm sm:text-lg font-bold text-black">{group.name}</h3>
@@ -188,12 +217,11 @@ export default function App() {
                           <p className="text-[10px] sm:text-xs text-gray-500 font-light leading-snug flex-1">
                             {item.description}
                           </p>
-                          <div data-no-pan className="flex items-center gap-1 ml-2 flex-shrink-0">
+                          <div data-no-pan className="flex items-center gap-1.5 ml-2 flex-shrink-0">
                             {qty > 0 && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); removeFromCart(item); }}
-                                className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs leading-none transition-colors"
-                                style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                                className="w-6 h-6 flex items-center justify-center rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs leading-none transition-colors"
                               >−</button>
                             )}
                             {qty > 0 && (
@@ -203,8 +231,7 @@ export default function App() {
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); addToCart(item); }}
-                              className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs leading-none transition-colors"
-                              style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                              className="w-6 h-6 flex items-center justify-center rounded-full bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs leading-none transition-colors"
                             >+</button>
                           </div>
                         </div>
@@ -219,19 +246,18 @@ export default function App() {
                     Salsas <span className="font-sans text-[9px] sm:text-[10px] font-normal normal-case tracking-normal text-gray-500 ml-1 sm:ml-2 mt-[2px]">(250gr)</span>
                   </h3>
                   <div className="space-y-1 sm:space-y-1 px-1 sm:px-2">
-                    {getSalsas().map(item => {
+                    {salsas.map(item => {
                       const qty = cart[item.id] ?? 0;
                       return (
-                        <div key={item.id} className="flex items-center justify-between">
-                          <span className="text-[11px] sm:text-xs text-gray-600 font-medium flex-1">{item.name}</span>
+                        <div key={item.id} className="flex items-center justify-between py-0.5">
+                          <span className="text-[10px] sm:text-xs text-gray-500 font-light flex-1">{item.name}</span>
                           <div className="flex-grow mx-2 sm:mx-3 border-b border-dotted border-gray-300 h-1"></div>
-                          <span className="font-bold text-black text-[11px] sm:text-xs mr-2">${item.price}</span>
-                          <div data-no-pan className="flex items-center gap-1 flex-shrink-0">
+                          <span className="font-bold text-black text-[10px] sm:text-xs mr-2">${item.price}</span>
+                          <div data-no-pan className="flex items-center gap-1.5 flex-shrink-0">
                             {qty > 0 && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); removeFromCart(item); }}
-                                className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs leading-none transition-colors"
-                                style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                                className="w-6 h-6 flex items-center justify-center rounded-full bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold text-xs leading-none transition-colors"
                               >−</button>
                             )}
                             {qty > 0 && (
@@ -239,8 +265,7 @@ export default function App() {
                             )}
                             <button
                               onClick={(e) => { e.stopPropagation(); addToCart(item); }}
-                              className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs leading-none transition-colors"
-                              style={{ minWidth: 36, minHeight: 36, margin: '-8px' }}
+                              className="w-6 h-6 flex items-center justify-center rounded-full bg-stone-800 hover:bg-stone-700 text-white font-bold text-xs leading-none transition-colors"
                             >+</button>
                           </div>
                         </div>
@@ -249,21 +274,6 @@ export default function App() {
                   </div>
                 </div>
 
-              </div>
-
-              <div className="mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-gray-200 flex justify-center gap-4 sm:gap-8">
-                <div className="text-center flex flex-col items-center">
-                  <Move className="w-4 h-4 sm:w-5 sm:h-5 mb-1 sm:mb-1 text-gray-400" strokeWidth={1} />
-                  <p className="text-[7px] sm:text-[9px] uppercase tracking-wide font-semibold">Delivery</p>
-                </div>
-                <div className="text-center flex flex-col items-center">
-                  <Mail className="w-4 h-4 sm:w-5 sm:h-5 mb-1 sm:mb-1 text-gray-400" strokeWidth={1} />
-                  <p className="text-[7px] sm:text-[9px] uppercase tracking-wide font-semibold">Take Away</p>
-                </div>
-                <div className="text-center flex flex-col items-center">
-                  <Phone className="w-4 h-4 sm:w-5 sm:h-5 mb-1 sm:mb-1 text-gray-400" strokeWidth={1} />
-                  <p className="text-[7px] sm:text-[9px] uppercase tracking-wide font-semibold">Efectivo / QR</p>
-                </div>
               </div>
 
               {/* Inner shadow for fold depth */}
@@ -362,7 +372,7 @@ export default function App() {
 
               {/* Bottom Footer */}
               <div className="bg-black py-3 sm:py-4 border-t border-gray-800 flex justify-center px-6 sm:px-8 text-[8px] sm:text-[10px] text-gray-500 tracking-widest flex-shrink-0">
-                <p>Desarrollado por <a href="https://rodrip.online" target="_blank" rel="noopener noreferrer" title="Portafolio de RodriP." class="text-white hover:text-white transition-colors"><span class="text-md font-semibold tracking-tighter">Rodri<span class="text-emerald-500">P</span></span></a></p>
+                <p>Desarrollado por <a href="https://rodrip.online" target="_blank" rel="noopener noreferrer" title="Portafolio de RodriP." className="text-white hover:text-white transition-colors"><span className="text-md font-semibold tracking-tighter">Rodri<span className="text-emerald-500">P</span></span></a></p>
               </div>
               
               {/* Inner shadow for fold depth */}
@@ -422,10 +432,10 @@ export default function App() {
             >
               {/* Background image with overlay */}
               <div className="absolute inset-0 z-0">
-                <img 
-                  src="img/punto-p-img3.webp" 
-                  alt="Pasta Artesanal" 
-                  className="w-full h-full object-cover opacity-60 grayscale contrast-125"
+                <img
+                  src="img/punto-p-img3-processed.webp"
+                  alt="Pasta Artesanal"
+                  className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-90"></div>
@@ -499,9 +509,9 @@ export default function App() {
         className="fixed bottom-6 right-4 z-50 w-14 h-14 bg-stone-800 hover:bg-stone-700 text-white rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform"
         aria-label="Ver pedido"
       >
-        <ShoppingBag size={22} />
+        <ShoppingBasket size={22} />
         {cartCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-stone-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center pointer-events-none">
+          <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center pointer-events-none">
             {cartCount}
           </span>
         )}
@@ -676,6 +686,8 @@ export default function App() {
           Email copiado al portapapeles
         </div>
       </div>
+
+      {perfEnabled && <PerformanceOverlay metrics={metrics} />}
 
     </div>
   );
