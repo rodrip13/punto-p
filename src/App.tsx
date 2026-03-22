@@ -1,8 +1,9 @@
-import { useState, useCallback, useRef, type MouseEvent, useEffect } from 'react';
+import { useState, useCallback, useRef, useMemo, type MouseEvent, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { RotateCcw, BookOpen, X, ZoomIn, ZoomOut, Maximize, Move, Mail, Phone, Check, Globe, AtSign, MapPin, ShoppingBag } from 'lucide-react';
+import { RotateCcw, BookOpen, X, ZoomIn, ZoomOut, Maximize, Move, Mail, Phone, Check, Globe, AtSign, MapPin, ShoppingBasket } from 'lucide-react';
 import { useCanvasTransform } from './useCanvasTransform';
-import { MENU_ITEMS, type MenuItem, getPastaGroups, getSalsas } from './menuData';
+import { type MenuItem, getPastaGroups, getSalsas } from './menuData';
+import { fetchMenuItems } from './menuApi';
 import { usePerformanceMonitor } from './usePerformanceMonitor';
 import { PerformanceOverlay } from './PerformanceOverlay';
 
@@ -21,12 +22,29 @@ export default function App() {
   const onTransformUpdate = useCallback(() => { transformCountRef.current++; }, [transformCountRef]);
   const { containerRef, transform, isAnimating, zoomIn, zoomOut, resetTransform, fitToScreen, focusOnElement, centerView, shiftViewForOpen } = useCanvasTransform(perfEnabled ? onTransformUpdate : undefined);
 
+  // Menu data — loaded once from API on mount
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [isMenuLoading, setIsMenuLoading] = useState(true);
+
+  useEffect(() => {
+    fetchMenuItems().then(items => {
+      setMenuItems(items);
+      setIsMenuLoading(false);
+    });
+  }, []);
+
+  const pastaGroups = useMemo(() => getPastaGroups(menuItems), [menuItems]);
+  const salsas      = useMemo(() => getSalsas(menuItems),      [menuItems]);
+
   // Cart state
   type CartState = Record<string, number>;
   const [cart, setCart] = useState<CartState>({});
   const [isCartOpen, setIsCartOpen] = useState(false);
 
-  const cartItems = MENU_ITEMS.filter(item => (cart[item.id] ?? 0) > 0);
+  const cartItems = useMemo(
+    () => menuItems.filter(item => (cart[item.id] ?? 0) > 0),
+    [menuItems, cart]
+  );
   const cartCount = cartItems.length;
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price * cart[item.id], 0);
 
@@ -185,7 +203,7 @@ export default function App() {
               <div className="space-y-3 sm:space-y-5 flex-1 overflow-y-auto">
 
                 {/* Grupos de pasta */}
-                {getPastaGroups().map(group => (
+                {pastaGroups.map(group => (
                   <div key={group.name}>
                     <div className="flex items-baseline justify-between mb-0.5 sm:mb-1">
                       <h3 className="font-serif text-sm sm:text-lg font-bold text-black">{group.name}</h3>
@@ -228,7 +246,7 @@ export default function App() {
                     Salsas <span className="font-sans text-[9px] sm:text-[10px] font-normal normal-case tracking-normal text-gray-500 ml-1 sm:ml-2 mt-[2px]">(250gr)</span>
                   </h3>
                   <div className="space-y-1 sm:space-y-1 px-1 sm:px-2">
-                    {getSalsas().map(item => {
+                    {salsas.map(item => {
                       const qty = cart[item.id] ?? 0;
                       return (
                         <div key={item.id} className="flex items-center justify-between py-0.5">
@@ -354,7 +372,7 @@ export default function App() {
 
               {/* Bottom Footer */}
               <div className="bg-black py-3 sm:py-4 border-t border-gray-800 flex justify-center px-6 sm:px-8 text-[8px] sm:text-[10px] text-gray-500 tracking-widest flex-shrink-0">
-                <p>Desarrollado por <a href="https://rodrip.online" target="_blank" rel="noopener noreferrer" title="Portafolio de RodriP." class="text-white hover:text-white transition-colors"><span class="text-md font-semibold tracking-tighter">Rodri<span class="text-emerald-500">P</span></span></a></p>
+                <p>Desarrollado por <a href="https://rodrip.online" target="_blank" rel="noopener noreferrer" title="Portafolio de RodriP." className="text-white hover:text-white transition-colors"><span className="text-md font-semibold tracking-tighter">Rodri<span className="text-emerald-500">P</span></span></a></p>
               </div>
               
               {/* Inner shadow for fold depth */}
@@ -414,10 +432,10 @@ export default function App() {
             >
               {/* Background image with overlay */}
               <div className="absolute inset-0 z-0">
-                <img 
-                  src="img/punto-p-img3.webp" 
-                  alt="Pasta Artesanal" 
-                  className="w-full h-full object-cover opacity-60 grayscale contrast-125"
+                <img
+                  src="img/punto-p-img3-processed.webp"
+                  alt="Pasta Artesanal"
+                  className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black opacity-90"></div>
@@ -491,9 +509,9 @@ export default function App() {
         className="fixed bottom-6 right-4 z-50 w-14 h-14 bg-stone-800 hover:bg-stone-700 text-white rounded-full shadow-xl flex items-center justify-center active:scale-95 transition-transform"
         aria-label="Ver pedido"
       >
-        <ShoppingBag size={22} />
+        <ShoppingBasket size={22} />
         {cartCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-stone-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center pointer-events-none">
+          <span className="absolute -top-1 -right-1 bg-green-500 text-white text-[10px] font-bold rounded-full w-5 h-5 flex items-center justify-center pointer-events-none">
             {cartCount}
           </span>
         )}

@@ -31,15 +31,15 @@ export interface MenuGroup {
   items: MenuItem[];
 }
 
-export function getPastaGroups(): MenuGroup[] {
+export function getPastaGroups(items: MenuItem[]): MenuGroup[] {
   const map = new Map<string, MenuGroup>();
-  MENU_ITEMS.filter(i => i.category === 'pasta').forEach(item => {
+  items.filter(i => i.category === 'pasta').forEach(item => {
     if (!map.has(item.name)) map.set(item.name, { name: item.name, price: item.price, items: [] });
     map.get(item.name)!.items.push(item);
   });
   return Array.from(map.values());
 }
 
-export function getSalsas(): MenuItem[] {
-  return MENU_ITEMS.filter(i => i.category === 'salsa');
+export function getSalsas(items: MenuItem[]): MenuItem[] {
+  return items.filter(i => i.category === 'salsa');
 }
